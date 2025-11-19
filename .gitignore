@@ -1,0 +1,23 @@
+# Backend — entornos y artefactos
+backend/venv/
+backend/__pycache__/
+backend/*.pyc
+
+# Backend — CSV históricos (no versionar)
+backend/data/*.csv
+
+# Backend — scripts locales que no quieres subir
+backend/debug_columns.py
+backend/test_api.py
+
+backend/frost_model.pkl
+
+# Frontend (evitar artefactos pesados)
+frontend/node_modules/
+frontend/build/
+
+# Comunes
+.env
+*.env
+.DS_Store
+Thumbs.db
