@@ -1,9 +1,8 @@
-import logo from './logo.svg';
 import './App.css';
-import FrostPrediction from './components/FrostPrediction';
+import EnhancedFrostPrediction from './components/EnhancedFrostPrediction';
 
 function App() {
-  return <FrostPrediction />;
+  return <EnhancedFrostPrediction />;
 }
 
 export default App;
