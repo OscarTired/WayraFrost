@@ -15,3 +15,25 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Asegurar que Leaflet funcione correctamente */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  z-index: 1;
+}
+
+/* Fix para popup */
+.leaflet-popup-content-wrapper {
+  border-radius: 8px;
+}
+
+/* Animación suave para el mapa */
+.leaflet-container {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

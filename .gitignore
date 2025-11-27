@@ -1,23 +1,141 @@
-# Backend — entornos y artefactos
+# ==============================================================================
+# PYTHON / BACKEND
+# ==============================================================================
+
+# Entornos virtuales
 backend/venv/
+backend/.venv/
+venv/
+.venv/
+env/
+ENV/
+
+# Archivos compilados de Python
 backend/__pycache__/
-backend/*.pyc
+backend/**/__pycache__/
+*.py[cod]
+*$py.class
+*.so
 
-# Backend — CSV históricos (no versionar)
+# Modelos entrenados (pesados, regenerar localmente)
+backend/*.pkl
+backend/frost_model*.pkl
+
+# Datos CSV históricos (no versionar, solo instrucciones)
 backend/data/*.csv
+!backend/data/.gitkeep
+!backend/data/README.md
 
-# Backend — scripts locales que no quieres subir
-backend/debug_columns.py
-backend/test_api.py
+# Logs y temporal
+*.log
+*.tmp
 
-backend/frost_model.pkl
-
-# Frontend (evitar artefactos pesados)
-frontend/node_modules/
-frontend/build/
-
-# Comunes
+# Configuración sensible
 .env
 *.env
+.env.local
+.env.*.local
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ==============================================================================
+# NODE.JS / FRONTEND
+# ==============================================================================
+
+# Dependencias
+frontend/node_modules/
+frontend/.pnp
+frontend/.pnp.js
+
+# Build de producción
+frontend/build/
+frontend/dist/
+
+# Testing
+frontend/coverage/
+
+# Temporal de desarrollo
+frontend/.DS_Store
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/lerna-debug.log*
+frontend/.idea
+frontend/.vscode/*
+!frontend/.vscode/settings.json
+!frontend/.vscode/tasks.json
+!frontend/.vscode/launch.json
+!frontend/.vscode/extensions.json
+
+# ==============================================================================
+# SISTEMA OPERATIVO
+# ==============================================================================
+
+# macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
 Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# ==============================================================================
+# IDEs Y EDITORES
+# ==============================================================================
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+
+# JetBrains
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/usage.statistics.xml
+.idea/**/dictionaries
+.idea/**/shelf
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# ==============================================================================
+# OTROS
+# ==============================================================================
+
+# Archivos temporales de prueba (mantener fuera de Git)
+backend/test_api.py
+backend/debug_*.py
+backend/temp_*.py
+
+# Certificados y claves (NUNCA versionar)
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+
+# Backups
+*.bak
+*.swp
+*.swo
+*~
+
+# Archivos de caché de mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json

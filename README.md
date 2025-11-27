@@ -1,43 +1,66 @@
-# Frost Prediction – ML Heladas
+# WayraFrost - Sistema de Predicción de Heladas
 
-Sistema completo para predicción de heladas con un backend en Flask (Python) y un frontend en React con TailwindCSS.
+Sistema inteligente de predicción de heladas multiclase para la región de Junín, Perú. Integra **Machine Learning**, **APIs meteorológicas**, **IA generativa (Gemini)** y **alertas SMS (Twilio)**.
 
 ## Estructura del Repositorio
 
-```
-frost-prediction/
+```.txt
+WayraFrost/
+├── .env # Variables de entorno (NO versionar)
+├── .gitignore # Archivos excluidos de Git
+├── README.md # Este archivo
+│
 ├── backend/
-│   ├── api.py                 # API Flask (puerto 5000)
-│   ├── train_model.py         # Entrenamiento y empaquetado del modelo
-│   ├── frost_model.pkl        # Modelo entrenado (Joblib)
-│   ├── requirements.txt       # Dependencias de Python
-│   └── data/                  # Datos horarios históricos (CSV)
-│       ├── HR_hourly_2018_2025.csv
-│       ├── dir_hourly_2018_2025.csv
-│       ├── pp_hourly_2018_2025.csv
-│       ├── press_hourly_2018_2025.csv
-│       ├── radinf_hourly_2018_2025.csv
-│       └── tempsup_hourly_2018_2025.csv
+│ ├── api_v2.py # API Flask principal (v2 - multiclase)
+│ ├── train_model_v2.py # Entrenamiento del modelo v2
+│ ├── sms_service.py # Servicio de SMS con Twilio
+│ ├── weather_service.py # Integración Open-Meteo API
+│ ├── gemini_service.py # Integración Google Gemini AI
+│ ├── requirements.txt # Dependencias Python
+│ ├── frost_model_v2.pkl # Modelo entrenado (NO versionar)
+│ │
+│ └── data/ # Datos históricos (NO versionados)
+│ ├── README.md # Documentación de datos
+│ ├── .gitkeep # Mantiene directorio en Git
+│ ├── HR_hourly_2018_2025.csv
+│ ├── dir_hourly_2018_2025.csv
+│ ├── pp_hourly_2018_2025.csv
+│ ├── press_hourly_2018_2025.csv
+│ ├── radinf_hourly_2018_2025.csv
+│ ├── tempsup_hourly_2018_2025.csv
+│ └── vel_hourly_2018_2025.csv
+│
 └── frontend/
-    ├── public/
-    ├── src/
-    │   ├── components/
-    │   │   └── FrostPrediction.jsx
-    │   ├── App.js
-    │   ├── index.js
-    │   └── index.css           # Directivas @tailwind
-    ├── craco.config.js         # Configuración para CRA + PostCSS
-    ├── postcss.config.js       # Plugins TailwindCSS y Autoprefixer
-    ├── tailwind.config.js      # Paths de contenido Tailwind
-    ├── package.json            # Scripts y dependencias
-    └── package-lock.json
+├── public/
+│ ├── index.html
+│ ├── manifest.json
+│ └── favicon.svg
+│
+├── src/
+│ ├── components/
+│ │ ├── EnhancedFrostPrediction_v2.jsx # Componente principal
+│ │ ├── LocationMapSelector.jsx # Selector con mapa Leaflet
+│ │ └── PhoneInput.jsx # Input de teléfono validado
+│ │
+│ ├── App.js # Punto de entrada React
+│ ├── index.js # Render principal
+│ └── index.css # Estilos globales + Leaflet
+│
+├── craco.config.js # Configuración CRACO
+├── postcss.config.js # PostCSS + TailwindCSS
+├── tailwind.config.js # Configuración Tailwind
+├── package.json # Dependencias y scripts
+└── package-lock.json # Lock de dependencias
 ```
 
 ## Requisitos Previos
 
-- `Git`
-- `Python 3.10+` y `pip`
-- `Node.js 18+` y `npm`
+- **Python** `3.10+` con `pip`
+- **Node.js** `18+` con `npm`
+- **Git**
+- **Cuentas API** (opcionales pero recomendadas):
+- [Google AI Studio](https://aistudio.google.com/) → Gemini API Key
+- [Twilio](https://www.twilio.com/) → Account SID, Auth Token, Phone Number
 
 ## Clonación del Proyecto
 
@@ -45,23 +68,23 @@ frost-prediction/
 
    ```bash
    git clone <URL_DEL_REPOSITORIO>
-   cd frost-prediction
+   cd WayraFrost
    ```
 
-2. Opcional: si ya tienes los directorios por separado, confirma rutas en Windows:
-
-   - Backend: `d:\Python\ML HELADAS\frost-prediction\backend`
-   - Frontend: `d:\Python\ML HELADAS\frost-prediction\frontend`
-
-## Backend (Flask)
+## Backend (Flask API)
 
 1. Entrar al directorio y crear entorno virtual:
 
-   ```powershell
-   cd backend
-   python -m venv venv
-   .\venv\Scripts\activate
-   ```
+cd backend
+python -m venv venv
+
+### Windows
+
+.\venv\Scripts\activate
+
+### Linux/Mac
+
+source venv/bin/activate
 
 2. Instalar dependencias:
 
@@ -72,13 +95,26 @@ frost-prediction/
 3. (Opcional) Entrenar el modelo si `frost_model.pkl` no existe:
 
    ```powershell
-   python train_model.py
+   python train_model_v2.py
    ```
 
-4. Ejecutar la API:
+4. Crear archiv .env en la raíz del proyecto:
+
+### Google Gemini AI
+
+GEMINI_API_KEY=tu_api_key_de_gemini
+
+### Twilio SMS
+
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=tu_auth_token_de_twilio
+TWILIO_PHONE_NUMBER=+1234567890
+
+
+5. Ejecutar la API:
 
    ```powershell
-   python api.py
+   python api_v2.py
    ```
 
    - Salud: `GET http://localhost:5000/health`
@@ -88,13 +124,13 @@ frost-prediction/
 
    ```json
    {
-     "tempsup_tempsup_mean": 2.5,
+     "tempsup_tem2m_mean": 2.5,
      "HR_HR_mean": 85.0,
      "timestamp": "2025-11-17T22:00:00"
    }
    ```
 
-5. Pruebas rápidas de la API (opcional):
+6. Pruebas rápidas de la API (opcional):
 
    ```powershell
    python test_api.py
@@ -103,12 +139,13 @@ frost-prediction/
 ### Endpoints Principales
 
 - `GET /health` – Estado de la API y carga del modelo
-- `POST /api/predict` – Predicción individual
-- `POST /api/predict-batch` – Predicciones múltiples
-- `GET /api/model-info` – Información del modelo y features
-- `POST /api/historical-risk` – Resumen de riesgo en timeline
+- `POST /api/validate-location` – Validar ubicación
+- `POST /api/predict-enhanced-v2` – Predicción individual con validación
+- `GET  /api/station-info` – Información de la estación
+- `GET  /api/locations` – Ubicaciones válidas
+- `POST /api/send-alert-sms` – Enviar alerta por SMS
 
-## Frontend (React + TailwindCSS)
+## Frontend (React + TailwindCSS + Leaflet)
 
 1. Entrar al directorio e instalar dependencias:
 
@@ -157,3 +194,14 @@ frost-prediction/
 - TailwindCSS está integrado mediante PostCSS y CRACO sin eyectar de CRA.
 - Si se cambia la URL del backend, ajusta `API_URL` en `src/components/FrostPrediction.jsx`.
 - Se recomienda no versionar entornos virtuales (`venv/`) y mantenerlos fuera del control de versiones.
+
+## Agradecimientos
+
+**Instituto Geofísico del Perú (IGP)** por los datos históricos
+Open-Meteo por su API meteorológica gratuita
+
+## ⭐ Si este proyecto te fue útil, considera darle una estrella en GitHub
+
+Si te interesa una colaboración o tienes planeado un proyecto similar contáctanos:
+
+**EMAIL:** oscarwork77@gmail.com, ylopevia@gmail.com
