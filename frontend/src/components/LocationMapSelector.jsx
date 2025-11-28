@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Circle, useMapEvents, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -220,20 +220,13 @@ const LocationMapSelector = ({ onLocationConfirm, stationInfo, phoneNumber }) =>
       {selectedPosition && validationResult?.is_valid && (
         <button
           onClick={handleConfirm}
-          disabled={!phoneNumber}
-          className="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+          className="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
         >
           <MapPin className="w-5 h-5" />
           {phoneNumber 
             ? 'Confirmar y Analizar (enviará SMS)' 
-            : 'Ingrese un número de teléfono primero'}
+            : 'Confirmar y Analizar'}
         </button>
-      )}
-
-      {!phoneNumber && selectedPosition && validationResult?.is_valid && (
-        <p className="text-sm text-amber-700 text-center">
-          ⚠️ Debe ingresar un número de teléfono válido para recibir alertas por SMS
-        </p>
       )}
 
       {/* Información de la estación */}

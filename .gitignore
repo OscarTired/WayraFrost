@@ -139,3 +139,5 @@ backend/temp_*.py
 .mypy_cache/
 .dmypy.json
 dmypy.json
+
+DOCUMENTACION.md

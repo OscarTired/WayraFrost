@@ -15,6 +15,11 @@ import os
 from datetime import datetime, timedelta
 from collections import deque
 import math
+import logging
+
+# Configurar logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Servicios
 from weather_service import weather_service, WeatherCodeInterpreter
@@ -284,8 +289,8 @@ def predict_enhanced_v2():
                         "class": int(y_pred_class),
                         "class_name": frost_class,
                         "probabilities": {
-                            "No Helada": float(y_pred_proba[0]),
-                            "Leve": float(y_pred_proba[1]),
+                            "Sin Riesgo": float(y_pred_proba[0]),
+                            "Riesgo": float(y_pred_proba[1]),
                             "Moderada": float(y_pred_proba[2]),
                             "Severa": float(y_pred_proba[3]) if len(y_pred_proba) > 3 else 0.0
                         },

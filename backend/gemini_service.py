@@ -141,10 +141,12 @@ Analiza los siguientes datos meteorológicos y la predicción de nuestro modelo 
 
 Por favor, proporciona tu análisis en formato JSON con la siguiente estructura exacta:
 {{
-    "resumen_ejecutivo": "Resumen de 2-3 oraciones sobre el riesgo de helada",
-    "nivel_riesgo_combinado": "bajo|medio|alto|muy_alto",
+    "resumen_ejecutivo": "Resumen de 2-3 oraciones sobre el riesgo de helada combinando análisis ML y meteorológico",
+    "nivel_riesgo_combinado": "sin_riesgo|bajo|medio|alto|muy_alto",
     "probabilidad_estimada": número entre 0 y 100,
+    "clasificacion_final": "Sin Riesgo|Riesgo|Moderada|Severa",
     "confianza_analisis": "baja|media|alta",
+    "discrepancia_ml": "El modelo ML y los datos meteorológicos coinciden/discrepan porque...",
     "factores_riesgo": [
         {{"factor": "nombre del factor", "impacto": "bajo|medio|alto", "descripcion": "explicación breve"}}
     ],
@@ -154,18 +156,28 @@ Por favor, proporciona tu análisis en formato JSON con la siguiente estructura 
     "horas_criticas": [
         {{"hora": "HH:MM", "temperatura_esperada": número, "riesgo": "bajo|medio|alto"}}
     ],
-    "recomendaciones": [
-        {{"prioridad": 1-5, "accion": "descripción de la acción recomendada", "urgencia": "inmediata|próximas_horas|preventiva"}}
-    ],
+    "impacto_agricultura": {{
+        "nivel_riesgo": "bajo|medio|alto|critico",
+        "cultivos_vulnerables": ["lista de cultivos específicos de la zona andina afectados"],
+        "acciones_recomendadas": ["lista de acciones específicas para proteger cultivos"],
+        "perdidas_potenciales": "descripción del impacto económico potencial"
+    }},
+    "impacto_ganaderia": {{
+        "nivel_riesgo": "bajo|medio|alto|critico",
+        "animales_vulnerables": ["lista de tipos de animales más afectados"],
+        "acciones_recomendadas": ["lista de acciones específicas para proteger ganado"],
+        "consideraciones": "notas sobre alimentación, agua, refugio"
+    }},
+    "impacto_salud": {{
+        "nivel_riesgo": "bajo|medio|alto|critico",
+        "poblacion_vulnerable": ["grupos de personas más vulnerables"],
+        "precauciones": ["lista de precauciones de salud"],
+        "sintomas_vigilar": ["hipotermia", "enfermedades respiratorias", etc]
+    }},
     "analisis_meteorologico": "Análisis detallado de las condiciones que favorecen o protegen de heladas",
     "comparacion_modelo_apis": "Comparación entre la predicción ML y los datos de APIs meteorológicas",
     "tipo_helada_probable": "radiativa|advectiva|mixta|ninguna",
-    "cultivos_vulnerables": ["lista de cultivos que serían más afectados"],
-    "grafico_temperatura": {{
-        "etiquetas": ["lista de horas"],
-        "temperaturas": [lista de temperaturas],
-        "linea_helada": 0
-    }}
+    "cultivos_vulnerables": ["lista de cultivos que serían más afectados"]
 }}
 
 Importante:
@@ -333,6 +345,21 @@ Importante:
                 except:
                     pass
         
+        # Determinar clasificación final combinada
+        clasificacion_map = {
+            "muy_alto": "Severa",
+            "alto": "Moderada", 
+            "medio": "Riesgo",
+            "bajo": "Sin Riesgo",
+            "sin_riesgo": "Sin Riesgo"
+        }
+        clasificacion_final = clasificacion_map.get(nivel_riesgo, "Riesgo")
+        
+        # Impactos sectoriales dinámicos basados en nivel de riesgo
+        impacto_agricultura = self._generate_agriculture_impact(nivel_riesgo, temp, min_temp_forecast)
+        impacto_ganaderia = self._generate_livestock_impact(nivel_riesgo, temp, min_temp_forecast)
+        impacto_salud = self._generate_health_impact(nivel_riesgo, temp, min_temp_forecast)
+        
         return {
             "success": True,
             "source": "fallback_rules",
@@ -340,16 +367,20 @@ Importante:
                 "resumen_ejecutivo": f"Análisis basado en reglas meteorológicas. Nivel de riesgo: {nivel_riesgo}. Se detectaron {frost_hours_count} horas con potencial riesgo de helada en las próximas 48 horas.",
                 "nivel_riesgo_combinado": nivel_riesgo,
                 "probabilidad_estimada": prob_estimada,
+                "clasificacion_final": clasificacion_final,
                 "confianza_analisis": "media",
+                "discrepancia_ml": f"El modelo ML predice {ml_prob*100:.1f}% mientras el análisis meteorológico indica riesgo {nivel_riesgo}.",
                 "factores_riesgo": factores_riesgo,
                 "factores_proteccion": factores_proteccion,
                 "horas_criticas": self._extract_critical_hours(forecast_summary.get("frost_risk_hours", [])),
                 "recomendaciones": recomendaciones,
+                "impacto_agricultura": impacto_agricultura,
+                "impacto_ganaderia": impacto_ganaderia,
+                "impacto_salud": impacto_salud,
                 "analisis_meteorologico": f"Condiciones actuales: Temp {temp}°C, Humedad {humidity}%, Nubes {cloud_cover}%, Viento {wind_speed}km/h. Temperatura mínima pronosticada: {min_temp_forecast}°C.",
                 "comparacion_modelo_apis": f"El modelo ML predice {ml_prob*100:.1f}% de probabilidad. Los datos de APIs muestran {frost_hours_count} horas con riesgo.",
                 "tipo_helada_probable": self._determine_frost_type(current, forecast_summary),
-                "cultivos_vulnerables": ["Papa", "Quinua", "Haba", "Maíz", "Cebada"],
-                "grafico_temperatura": grafico_temp
+                "cultivos_vulnerables": ["Papa", "Quinua", "Haba", "Maíz", "Cebada"]
             },
             "timestamp": datetime.now().isoformat()
         }
@@ -396,6 +427,127 @@ Importante:
         # Mixta: combinación de condiciones
         else:
             return "mixta"
+    
+    def _generate_agriculture_impact(self, nivel_riesgo: str, temp: float, min_temp: float) -> Dict:
+        """Genera impacto agrícola basado en condiciones."""
+        if nivel_riesgo in ["muy_alto", "alto"]:
+            return {
+                "nivel_riesgo": "critico" if nivel_riesgo == "muy_alto" else "alto",
+                "cultivos_vulnerables": ["Papa (daño severo bajo -2°C)", "Quinua (sensible en floración)", 
+                                        "Maíz (daño irreversible)", "Hortalizas de hoja", "Flores"],
+                "acciones_recomendadas": [
+                    "URGENTE: Activar riego por aspersión como protección térmica",
+                    "Cubrir cultivos con mantas térmicas o plástico",
+                    "Encender fogatas o calentadores en áreas críticas",
+                    "Cosechar productos maduros que puedan salvarse"
+                ],
+                "perdidas_potenciales": "Pérdidas significativas esperadas si no se toman medidas. Daño puede superar 50% en cultivos expuestos."
+            }
+        elif nivel_riesgo == "medio":
+            return {
+                "nivel_riesgo": "medio",
+                "cultivos_vulnerables": ["Papa (monitorear)", "Quinua", "Hortalizas tiernas", "Frutales en floración"],
+                "acciones_recomendadas": [
+                    "Preparar sistemas de protección para activación rápida",
+                    "Verificar cobertura de invernaderos",
+                    "Monitorear temperatura entre 3-6 AM",
+                    "Tener materiales de cobertura listos"
+                ],
+                "perdidas_potenciales": "Riesgo moderado de daño parcial en cultivos más sensibles."
+            }
+        else:
+            return {
+                "nivel_riesgo": "bajo",
+                "cultivos_vulnerables": ["Ninguno en riesgo inmediato"],
+                "acciones_recomendadas": [
+                    "Mantener monitoreo rutinario",
+                    "Verificar pronósticos para próximos días",
+                    "Aprovechar condiciones favorables para labores agrícolas"
+                ],
+                "perdidas_potenciales": "Sin pérdidas esperadas en las próximas horas."
+            }
+    
+    def _generate_livestock_impact(self, nivel_riesgo: str, temp: float, min_temp: float) -> Dict:
+        """Genera impacto ganadero basado en condiciones."""
+        if nivel_riesgo in ["muy_alto", "alto"]:
+            return {
+                "nivel_riesgo": "critico" if nivel_riesgo == "muy_alto" else "alto",
+                "animales_vulnerables": ["Crías recién nacidas (alto riesgo de hipotermia)", 
+                                        "Aves de corral", "Ganado enfermo o débil", "Alpacas/Llamas crías"],
+                "acciones_recomendadas": [
+                    "URGENTE: Resguardar crías y animales débiles en corrales cubiertos",
+                    "Proveer agua tibia para evitar congelamiento",
+                    "Aumentar ración alimenticia (mayor energía = mayor calor corporal)",
+                    "Usar camas de paja abundante para aislamiento",
+                    "Verificar ventilación sin corrientes de aire frío"
+                ],
+                "consideraciones": "El ganado joven y enfermo es extremadamente vulnerable. La hipotermia puede ser fatal en pocas horas."
+            }
+        elif nivel_riesgo == "medio":
+            return {
+                "nivel_riesgo": "medio",
+                "animales_vulnerables": ["Crías menores de 1 mes", "Aves de corral", "Animales en recuperación"],
+                "acciones_recomendadas": [
+                    "Verificar refugios y corrales estén en buen estado",
+                    "Preparar agua y evitar que se congele",
+                    "Incrementar alimentación nocturna",
+                    "Monitorear animales durante la madrugada"
+                ],
+                "consideraciones": "Vigilancia moderada recomendada. Asegurar refugio disponible para todos los animales."
+            }
+        else:
+            return {
+                "nivel_riesgo": "bajo",
+                "animales_vulnerables": ["Sin riesgo significativo"],
+                "acciones_recomendadas": [
+                    "Mantener rutinas normales de manejo",
+                    "Verificar disponibilidad de agua",
+                    "Monitoreo estándar del ganado"
+                ],
+                "consideraciones": "Condiciones favorables para el ganado. Sin medidas especiales requeridas."
+            }
+    
+    def _generate_health_impact(self, nivel_riesgo: str, temp: float, min_temp: float) -> Dict:
+        """Genera impacto en salud humana basado en condiciones."""
+        if nivel_riesgo in ["muy_alto", "alto"]:
+            return {
+                "nivel_riesgo": "alto",
+                "poblacion_vulnerable": ["Niños menores de 5 años", "Adultos mayores de 65 años", 
+                                        "Personas con enfermedades respiratorias", "Personas sin vivienda adecuada"],
+                "precauciones": [
+                    "EVITAR salir de madrugada sin protección adecuada",
+                    "Mantener viviendas calientes (cerrar puertas/ventanas)",
+                    "Usar varias capas de ropa de abrigo",
+                    "Consumir bebidas calientes y alimentos energéticos",
+                    "Verificar estado de ancianos y niños vecinos"
+                ],
+                "sintomas_vigilar": ["Temblores incontrolables (hipotermia inicial)", 
+                                    "Piel pálida o azulada", "Confusión mental",
+                                    "Dificultad respiratoria", "Tos persistente"]
+            }
+        elif nivel_riesgo == "medio":
+            return {
+                "nivel_riesgo": "medio",
+                "poblacion_vulnerable": ["Niños pequeños", "Adultos mayores", "Personas con asma o bronquitis"],
+                "precauciones": [
+                    "Abrigarse bien al salir temprano",
+                    "Evitar cambios bruscos de temperatura",
+                    "Mantener pies y manos calientes",
+                    "Ventilar viviendas durante horas de sol"
+                ],
+                "sintomas_vigilar": ["Resfriados", "Dolor de garganta", "Rigidez muscular por frío"]
+            }
+        else:
+            return {
+                "nivel_riesgo": "bajo",
+                "poblacion_vulnerable": ["Sin grupos en riesgo especial"],
+                "precauciones": [
+                    "Vestimenta normal de temporada",
+                    "Mantener hábitos saludables",
+                    "Hidratación adecuada"
+                ],
+                "sintomas_vigilar": ["Ninguno específico por frío"]
+            }
     
     def is_available(self) -> bool:
         """Verifica si el servicio está disponible."""

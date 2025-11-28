@@ -115,47 +115,112 @@ class SMSService:
                 "phone_number": phone_number
             }
     
+    def _get_combined_classification(self, data: Dict) -> str:
+        """Obtiene la clasificación combinada (más conservadora entre ML y API)."""
+        ml_class = data.get("ml_prediction_v2", {}).get("prediction", {}).get("class_name", "Sin Riesgo")
+        api_class = data.get("ai_analysis", {}).get("clasificacion_final")
+        
+        if not api_class:
+            return ml_class
+        
+        # Usar la más conservadora (mayor riesgo)
+        risk_order = {"Sin Riesgo": 0, "Riesgo": 1, "Moderada": 2, "Severa": 3}
+        return api_class if risk_order.get(api_class, 0) >= risk_order.get(ml_class, 0) else ml_class
+    
+    def _get_min_temp_forecast(self, forecast: list) -> tuple:
+        """Obtiene temperatura mínima y hora del pronóstico."""
+        if not forecast:
+            return None, None
+        
+        min_temp = float('inf')
+        min_hour = None
+        
+        for i, hour_data in enumerate(forecast[:24]):  # Próximas 24h
+            temp = hour_data.get("temperature")
+            if temp is not None and temp < min_temp:
+                min_temp = temp
+                min_hour = hour_data.get("time", "")
+        
+        if min_temp == float('inf'):
+            return None, None
+        
+        # Extraer solo la hora
+        if min_hour and "T" in min_hour:
+            min_hour = min_hour.split("T")[1][:5]  # "HH:MM"
+        
+        return min_temp, min_hour
+    
     def _build_prediction_message_minimal(self, data: Dict) -> str:
-        """Versión MÍNIMA con emojis (intento < 160 chars)."""
-        risk_class = data.get("ml_prediction_v2", {}).get("prediction", {}).get("class_name", "?")
+        """Versión MÍNIMA con emojis (< 160 chars) - Clasificación COMBINADA."""
+        # Clasificación combinada del sistema
+        risk_class = self._get_combined_classification(data)
         temp = data.get("current_conditions", {}).get("temperature", "?")
         forecast = data.get("hourly_forecast", [])
+        ai_analysis = data.get("ai_analysis", {})
         
-        # Emojis minimalistas
-        emoji = {"No Helada": "✓", "Leve": "!", "Moderada": "!!", "Severa": "!!!"}[risk_class] if risk_class in ["No Helada", "Leve", "Moderada", "Severa"] else "?"
+        # Emojis según riesgo
+        emoji_map = {"Sin Riesgo": "✓", "Riesgo": "⚠", "Moderada": "🧊", "Severa": "❄"}
+        emoji = emoji_map.get(risk_class, "?")
         
-        # Pronósticos ultra-cortos
-        f12 = self._get_temp_at_hour(forecast, 12)
-        f24 = self._get_temp_at_hour(forecast, 24)
+        # Temperatura mínima esperada
+        min_temp, min_hour = self._get_min_temp_forecast(forecast)
+        
+        # Probabilidad de helada
+        prob = ai_analysis.get("probabilidad_estimada", "")
         
         now = datetime.now()
-        message = f"""WayraFrost {emoji}
+        
+        # Formatear temperatura mínima
+        min_temp_str = f"{min_temp:.1f}" if min_temp is not None else "?"
+        min_hour_str = min_hour if min_hour else "?"
+        
+        # Construir mensaje según nivel de riesgo (~150 chars)
+        if risk_class == "Sin Riesgo":
+            message = f"""WayraFrost {emoji}
 {risk_class}
 Ahora:{temp}C
-12h:{f12}C 24h:{f24}C
+Min:{min_temp_str}C
+{now.strftime('%d/%m %H:%M')}"""
+        else:
+            # Con riesgo: agregar probabilidad y hora crítica
+            message = f"""WayraFrost {emoji}
+{risk_class}
+Prob:{prob}%
+Ahora:{temp}C Min:{min_temp_str}C
+Riesgo:{min_hour_str}
 {now.strftime('%d/%m %H:%M')}"""
         
         return message.strip()
     
     def _build_prediction_message_no_emoji(self, data: Dict) -> str:
-        """Versión SIN emojis para máxima compatibilidad."""
-        risk_class = data.get("ml_prediction_v2", {}).get("prediction", {}).get("class_name", "Desconocido")
+        """Versión SIN emojis - Clasificación COMBINADA."""
+        # Clasificación combinada del sistema
+        risk_class = self._get_combined_classification(data)
         temp = data.get("current_conditions", {}).get("temperature", "N/A")
         forecast = data.get("hourly_forecast", [])
+        ai_analysis = data.get("ai_analysis", {})
         
-        f12 = self._get_temp_at_hour(forecast, 12)
-        f24 = self._get_temp_at_hour(forecast, 24)
+        # Temperatura mínima esperada
+        min_temp, min_hour = self._get_min_temp_forecast(forecast)
+        min_temp_str = f"{min_temp:.1f}" if min_temp is not None else "?"
+        
+        # Probabilidad de helada
+        prob = ai_analysis.get("probabilidad_estimada", "")
         
         now = datetime.now()
         
-        # Formato ultra-compacto sin emojis
-        message = f"""WayraFrost Alerta
-RIESGO: {risk_class}
-Temp: {temp}C
-12h: {f12}C
-24h: {f24}C
-{now.strftime('%d/%m %H:%M')}
-wayrafrost.app"""
+        # Formato sin emojis (~140 chars)
+        if risk_class == "Sin Riesgo":
+            message = f"""WayraFrost
+{risk_class}
+Ahora:{temp}C Min:{min_temp_str}C
+{now.strftime('%d/%m %H:%M')}"""
+        else:
+            message = f"""WayraFrost ALERTA
+{risk_class} Prob:{prob}%
+Ahora:{temp}C Min:{min_temp_str}C
+Critico:{min_hour}
+{now.strftime('%d/%m %H:%M')}"""
         
         return message.strip()
     

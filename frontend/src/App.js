@@ -1,9 +1,8 @@
 import './App.css';
-import EnhancedFrostPrediction_V2 from './components/EnhancedFrostPrediction_v2';
+import EnhancedFrostPrediction_V3 from './components/EnhancedFrostPrediction_v3';
 
 function App() {
-  return <EnhancedFrostPrediction_V2 />;
+  return <EnhancedFrostPrediction_V3 />;
 }
 
 export default App;
-  

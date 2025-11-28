@@ -49,27 +49,36 @@ def create_features(df):
 def create_target(df):
     """
     Crea la variable objetivo multiclase basada en temp2m.
-    0: No Helada (> 4)
-    1: Helada Leve (0 < T <= 4)
-    2: Helada Moderada (-7 <= T <= 0)
-    3: Helada Severa (< -7)
+    Clasificación agroclimática estándar para heladas en la sierra peruana:
+    
+    0: Sin Riesgo (T > 4°C) - Condiciones normales, sin riesgo de helada
+    1: Riesgo de Helada (0°C < T <= 4°C) - Condiciones críticas, posible helada
+    2: Helada Moderada (-4°C < T <= 0°C) - Helada con daño parcial a cultivos
+    3: Helada Severa (T <= -4°C) - Helada intensa, daño severo a cultivos
+    
+    Nota: En zonas altoandinas como Huayao (3350 msnm), heladas por debajo de -4°C
+    son consideradas severas ya que causan daño irreversible en la mayoría de cultivos.
     """
     print("Creando variable objetivo (Clasificación)...")
+    print("Umbrales: Sin Riesgo (>4°C), Riesgo (0-4°C], Moderada (-4,0°C], Severa (≤-4°C)")
     
     conditions = [
-        (df['temp2m'] > 4),                     # No Helada
-        (df['temp2m'] > 0) & (df['temp2m'] <= 4), # Leve
-        (df['temp2m'] >= -7) & (df['temp2m'] <= 0), # Moderada
-        (df['temp2m'] < -7)                     # Severa (ajustado para cubrir < -8)
+        (df['temp2m'] > 4),                           # 0: Sin Riesgo
+        (df['temp2m'] > 0) & (df['temp2m'] <= 4),     # 1: Riesgo de Helada  
+        (df['temp2m'] > -4) & (df['temp2m'] <= 0),    # 2: Helada Moderada
+        (df['temp2m'] <= -4)                          # 3: Helada Severa
     ]
     
-    # 0: No, 1: Leve, 2: Mod, 3: Sev
     choices = [0, 1, 2, 3]
     
     df['target'] = np.select(conditions, choices, default=0)
     
-    print("Distribución de clases:")
-    print(df['target'].value_counts().sort_index())
+    print("\nDistribución de clases:")
+    class_names = {0: 'Sin Riesgo', 1: 'Riesgo', 2: 'Moderada', 3: 'Severa'}
+    for idx, count in df['target'].value_counts().sort_index().items():
+        pct = count / len(df) * 100
+        print(f"  {idx} ({class_names[idx]}): {count} ({pct:.1f}%)")
+    
     return df
 
 def main():
@@ -118,7 +127,7 @@ def main():
     
     # Especificar todas las clases posibles (0-3) aunque no aparezcan en test
     all_labels = [0, 1, 2, 3]
-    target_names = ['No Helada', 'Leve', 'Moderada', 'Severa']
+    target_names = ['Sin Riesgo', 'Riesgo', 'Moderada', 'Severa']
     
     print(classification_report(
         y_test, 
@@ -135,7 +144,7 @@ def main():
     model_package = {
         "model": rf,
         "feature_cols": feature_cols,
-        "target_mapping": {0: "No Helada", 1: "Leve", 2: "Moderada", 3: "Severa"},
+        "target_mapping": {0: "Sin Riesgo", 1: "Riesgo", 2: "Moderada", 3: "Severa"},
         "model_type": "RandomForestClassifier_MultiClass",
         "version": "2.0"
     }
